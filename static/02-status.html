@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>도서 목록</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px 20px;
+            font-family: Arial, sans-serif;
+            background: #f3f6fb;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+            color: #2563eb;
+        }
+
+        .description {
+            color: #6b7280;
+            margin-bottom: 25px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .table-box {
+            margin-top: 25px;
+            overflow-x: auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            padding: 16px;
+            background: #2563eb;
+            color: white;
+        }
+
+        td {
+            padding: 15px 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        tbody tr:hover {
+            background: #eff6ff;
+        }
+
+        .empty {
+            padding: 30px;
+            text-align: center;
+            color: #9ca3af;
+        }
+
+        #status {
+            color: #4b5563;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h1>📚 도서 목록</h1>
+        <p class="description">FastAPI에서 도서 정보를 불러옵니다.</p>
+
+        <button id="loadBtn">목록 불러오기</button>
+        <p id="status"></p>
+
+        <div class="table-box">
+            <table>
+                <thead>
+                    <tr>
+                        <th>번호</th>
+                        <th>도서명</th>
+                        <th>저자</th>
+                        <th>출판연도</th>
+                    </tr>
+                </thead>
+
+                <tbody id="result">
+                    <tr>
+                        <td colspan="4" class="empty">
+                            버튼을 눌러 도서 목록을 불러오세요.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        const loadBtn = document.getElementById("loadBtn");
+        const result = document.getElementById("result");
+        const status = document.getElementById("status");
+
+        loadBtn.addEventListener("click", async () => {
+            loadBtn.disabled = true;
+            loadBtn.textContent = "불러오는 중...";
+
+            try {
+                const response = await fetch("/books");
+
+                if (!response.ok) {
+                    throw new Error("도서 목록을 불러오지 못했습니다.");
+                }
+
+                const books = await response.json();
+
+                result.innerHTML = "";
+
+                if (books.length === 0) {
+                    result.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="empty">
+                                등록된 도서가 없습니다.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                for (const book of books) {
+                    const row = document.createElement("tr");
+
+                    const values = [
+                        book.id,
+                        book.title,
+                        book.author,
+                        book.year ?? "-"
+                    ];
+
+                    for (const value of values) {
+                        const cell = document.createElement("td");
+                        cell.textContent = value;
+                        row.appendChild(cell);
+                    }
+
+                    result.appendChild(row);
+                }
+
+                status.textContent = `${books.length}권의 도서를 불러왔습니다.`;
+            } catch (error) {
+                status.textContent = error.message;
+            } finally {
+                loadBtn.disabled = false;
+                loadBtn.textContent = "목록 불러오기";
+            }
+        });
+    </script>
+</body>
+</html>
