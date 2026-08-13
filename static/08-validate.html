@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>검증 오류 표시</title>
+</head>
+
+<body>
+    <h1>등록 (오류 표시)</h1>
+
+    <input id="title" type="text" placeholder="제목">
+    <input id="author" type="text" placeholder="저자">
+    <input id="year" type="number" placeholder="연도">
+
+    <button id="saveBtn">등록</button>
+
+    <ul id="errors" style="color: red;"></ul>
+    <p id="ok"></p>
+
+    <script>
+        const saveBtn = document.getElementById("saveBtn");
+        const errors = document.getElementById("errors");
+        const ok = document.getElementById("ok");
+
+        saveBtn.addEventListener("click", async () => {
+            const title = document.getElementById("title").value;
+            const author = document.getElementById("author").value;
+            const yearValue = document.getElementById("year").value;
+
+            const payload = {
+                title: title,
+                author: author,
+                year: yearValue === "" ? null : Number(yearValue)
+            };
+
+            const response = await fetch("/books", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            errors.innerHTML = "";
+            ok.textContent = "";
+
+            if (response.status === 422) {
+                for (const error of data.detail) {
+                    const li = document.createElement("li");
+
+                    li.textContent =
+                        error.loc.join(".") + " : " + error.msg;
+
+                    errors.appendChild(li);
+                }
+            } else if (response.ok) {
+                ok.textContent = "등록 완료: " + data.title;
+            } else {
+                ok.textContent = "오류: " + data.detail;
+            }
+        });
+    </script>
+</body>
+</html>

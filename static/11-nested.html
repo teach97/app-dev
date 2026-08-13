@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><title>상세 등록</title></head>
+<body>
+  <h1>태그·출판사 포함 등록</h1>
+  <input id="title" placeholder="제목">
+  <input id="author" placeholder="저자">
+  <input id="year" type="number" placeholder="연도">
+  <input id="tags" placeholder="태그 (쉼표로 구분)">
+  <input id="pubName" placeholder="출판사 이름 (선택)">
+  <input id="pubCity" placeholder="출판사 도시 (선택)">
+  <button id="saveBtn">등록</button>
+  <pre id="result"></pre>
+
+
+  <h2>도서 목록</h2>
+  <ul id="list"></ul>
+
+
+  <script>
+    async function loadList() {
+      const books = await (await fetch("/books")).json();
+      const ul = document.getElementById("list");
+      ul.innerHTML = "";
+      for (const b of books) {
+        let text = b.id + ". " + b.title + " - " + b.author + " (" + b.year + ")";
+        if (b.tags && b.tags.length) text += " [" + b.tags.join(", ") + "]";
+        if (b.publisher) text += " / " + b.publisher.name + " (" + b.publisher.city + ")";
+        const li = document.createElement("li");
+        li.textContent = text;
+        ul.appendChild(li);
+      }
+    }
+
+
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      const tagText = document.getElementById("tags").value;
+      const pubName = document.getElementById("pubName").value;
+      const pubCity = document.getElementById("pubCity").value;
+
+
+      const payload = {
+        title: document.getElementById("title").value,
+        author: document.getElementById("author").value,
+        year: Number(document.getElementById("year").value),
+        tags: tagText ? tagText.split(",").map(t => t.trim()) : []
+      };
+
+
+      if (pubName) {
+        payload.publisher = { name: pubName };
+        if (pubCity) payload.publisher.city = pubCity;
+      }
+
+
+      const res = await fetch("/books", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      document.getElementById("result").textContent =
+        "상태 " + res.status + "\n" + JSON.stringify(data, null, 2);
+
+
+            // 등록에 성공했을 때만 목록을 다시 불러온다
+      if (res.status === 201) {
+        ["title", "author", "year", "tags", "pubName", "pubCity"]
+          .forEach(id => document.getElementById(id).value = "");
+        await loadList();
+      }
+    });
+
+
+    loadList();
+   
+  </script>
+</body>
+</html>

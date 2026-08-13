@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>단건 조회</title>
+</head>
+<body>
+  <h1>도서 조회</h1>
+
+  <input id="bookId" type="number" placeholder="도서 번호">
+  <button id="findBtn">조회</button>
+
+  <p id="result"></p>
+
+  <script>
+    document.getElementById("findBtn").addEventListener("click", async () => {
+      const id = document.getElementById("bookId").value;
+
+      const response = await fetch("/books/" + id);
+      const data = await response.json();
+
+      const result = document.getElementById("result");
+
+      if (response.status === 404) {
+        result.style.color = "red";
+        result.textContent = data.detail;
+      } else if (response.ok) {
+        result.style.color = "black";
+        result.textContent =
+          data.title + " - " +
+          data.author + " (" +
+          data.year + ")";
+      } else {
+        result.style.color = "red";
+        result.textContent =
+          "요청 실패 (상태 코드: " + response.status + ")";
+      }
+    });
+  </script>
+</body>
+</html>
