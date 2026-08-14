@@ -2,41 +2,9 @@
 from fastapi import FastAPI, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 
-# BaseModel: 요청 데이터의 형식을 정의할 때 사용한다.
-# Field: 글자 수, 숫자 범위 같은 세부 검증 규칙을 추가할 때 사용한다.
-from pydantic import BaseModel, Field, field_validator
-
-
-# 출판사 정보를 표현하는 중첩 모델이다.
-class Publisher(BaseModel):
-    name: str
-    city: str = "부천"  # 도시를 입력하지 않으면 기본값으로 부천을 사용한다.
-
-
-# 클라이언트가 도서를 등록할 때 보내는 데이터 형식이다.
-# id는 서버가 자동으로 만들기 때문에 등록 요청에는 넣지 않는다.
-class BookCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=100)
-    author: str = Field(min_length=1, max_length=50)
-    year: int = Field(ge=1900, le=2026)
-    tags: list[str] = Field(default_factory=list)
-    publisher: Publisher | None = None
-
-    @field_validator("title")
-    @classmethod
-    def strip_title(cls, value: str) -> str:
-        value = value.strip()
-        # 공백문자열 체크
-        if not value:
-            raise ValueError("제목은 필수 입력입니다. (공백 불가능)")
-        return value
-
-
-# 서버가 도서를 응답할 때 사용하는 데이터 형식이다.
-# 등록 요청 형식(BookCreate)에 id를 추가한 형태다.
-class BookResponse(BookCreate):
-    id: int
-
+# 요청·응답 데이터 모델은 schemas.py에서 가져온다.
+from schemas import BookCreate, BookResponse, WeatherResponse, GoogleBooks
+from external_api import fetch_weather, fetch_books
 
 # FastAPI 애플리케이션 객체를 만든다.
 app = FastAPI()
@@ -162,6 +130,13 @@ def page_books(skip: int = 0, limit: int = 2):
     return books[skip:skip + limit]
 
 
+# 외부 Google Books API에서 도서를 검색한다.
+# 고정된 경로를 동적 경로(/books/{book_id})보다 먼저 선언해야 한다.
+@app.get("/books/external", response_model=list[GoogleBooks])
+async def search_external_books(keyword: str, limit: int = 5):
+    return await fetch_books(keyword, limit)
+
+
 # 도서 번호로 도서 한 권을 조회한다.
 @app.get("/books/{book_id}", response_model=BookResponse)
 def read_book(book_id: int):
@@ -236,3 +211,40 @@ def create_book(book: BookCreate):
 
 #한눈에 보기
 #http://127.0.0.1:8000/static/index.html
+
+# @app.get("/weather/raw")
+# async def weather_raw():
+#     async with httpx.AsyncClient(timeout=5.0) as client:
+#         response = await client.get(
+#             "https://api.open-meteo.com/v1/forecast",
+#             params={
+#                 "latitude": 36.8,
+#                 "longitude": 127.1,
+#                 "current": "temperature_2m",
+#             },
+#         )
+#         return response.json()
+
+
+
+@app.get("/weather", response_model=WeatherResponse)
+async def weather(latitude: float = 36.8, longitude: float = 127.1):
+    return await fetch_weather(latitude, longitude)
+
+#     async with httpx.AsyncClient(timeout=5.0) as client:
+#         response = await client.get(
+#                 "https://api.open-meteo.com/v1/forecast",
+#             params={
+#                 "latitude": latitude,
+#                 "longitude": longitude,
+#                 "current": "temperature_2m"
+#                 },
+#         )        
+#         data = response.json()
+    
+#     return WeatherResponse(
+#         latitude=data["latitude"],
+#         longitude=data["longitude"],
+#         temperature=data["current"]["temperature_2m"],
+#         time=data["current"]["time"],
+# )
