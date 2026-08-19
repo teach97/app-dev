@@ -79,6 +79,16 @@ class BookCreate(BaseModel):
         }
     }
 
+class BookUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=100)
+    author: str | None = Field(default=None, min_length=1, max_length=50)
+    year  : int | None = Field(default=None, ge=1900, le=2026,
+                            description="출판 연도",
+                            examples=[2024],)
+    tags : list[str] | None = Field(default=None,
+                                description="도서 태그 목록",
+                                examples=["python", "web"],)
+    publisher : Publisher | None = Field(default=None, description="출판사 정보")
 
 # 서버가 도서를 응답할 때 사용하는 데이터 형식이다.
 # 등록 요청 형식(BookCreate)에 id를 추가한 형태다.
